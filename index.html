@@ -1,0 +1,371 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+<style>html,body{margin:0;padding:0;border:0;height:100%;background:#000;color:#ccc;overflow:hidden}canvas{image-rendering:optimizeSpeed;-ms-touch-action:none;margin:0;padding:0;border:0}div.gm4html5_div_class{margin:0;padding:0;border:0}:-webkit-full-screen #canvas{width:100%;height:100%}#tfmsg{display:flex;position:fixed;left:0;top:0;right:0;bottom:0;align-items:center;justify-content:center;text-align:center;padding:24px;color:#cfe0ff;background:#000;font:16px/1.4 system-ui,sans-serif;z-index:5;pointer-events:none}#tfmsg.bad{background:#1c0b10;color:#ffd3d9}#tfsub{margin-top:10px;font-size:13px;opacity:.7}</style>
+<div id="tfmsg"><div style="max-width:560px"><div id="tftxt">Loading Tiny Fishing... the first load downloads a few MB, so it can take a while on slow Wi-Fi.</div><div id="tfsub"></div></div></div>
+<!-- Save Manager: the drop-down that appears when you move your mouse to the top of the page -->
+<script>
+/* ===== Save Manager (shared by every game) =====
+   Move the mouse to the very top of the page and a drop-down slides down. It shows a save code: a block of scrambled letters and numbers
+   that holds your progress. The code is encrypted and signed, so it can't be read or edited by hand; paste it back in to load it. */
+(function () {
+  'use strict';
+  var SECRET = 'yIjlx6aDm7qxSbjyJZ75rQkKTMzJ1Hb1vGXbr59tWLpv';
+  var ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  // ---- SHA-256 and HMAC, plain synchronous JavaScript (so it also works on plain http and inside embeds)
+  var K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  function sha256(m) {
+    var h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    var l = m.length, n = ((l + 9 + 63) >> 6) << 6, b = new Uint8Array(n), i, j, t, w = new Array(64);
+    b.set(m); b[l] = 0x80;
+    var bits = l * 8; b[n - 4] = bits >>> 24; b[n - 3] = bits >>> 16; b[n - 2] = bits >>> 8; b[n - 1] = bits; b[n - 8] = Math.floor(l / 536870912) & 255;
+    for (i = 0; i < n; i += 64) {
+      for (j = 0; j < 16; j++) w[j] = (b[i + 4 * j] << 24) | (b[i + 4 * j + 1] << 16) | (b[i + 4 * j + 2] << 8) | b[i + 4 * j + 3];
+      for (j = 16; j < 64; j++) {
+        var s0 = ((w[j - 15] >>> 7) | (w[j - 15] << 25)) ^ ((w[j - 15] >>> 18) | (w[j - 15] << 14)) ^ (w[j - 15] >>> 3);
+        var s1 = ((w[j - 2] >>> 17) | (w[j - 2] << 15)) ^ ((w[j - 2] >>> 19) | (w[j - 2] << 13)) ^ (w[j - 2] >>> 10);
+        w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+      }
+      var a = h[0], bb = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+      for (j = 0; j < 64; j++) {
+        var S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+        var ch = (e & f) ^ (~e & g), t1 = (hh + S1 + ch + K[j] + w[j]) | 0;
+        var S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+        var mj = (a & bb) ^ (a & c) ^ (bb & c), t2 = (S0 + mj) | 0;
+        hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+      }
+      h[0] = (h[0] + a) | 0; h[1] = (h[1] + bb) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0; h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+    }
+    var out = new Uint8Array(32);
+    for (t = 0; t < 8; t++) { out[4 * t] = h[t] >>> 24; out[4 * t + 1] = h[t] >>> 16; out[4 * t + 2] = h[t] >>> 8; out[4 * t + 3] = h[t]; }
+    return out;
+  }
+  function cat(a, b) { var o = new Uint8Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
+  function utf8(s) { return typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(s) : (function () { var u = unescape(encodeURIComponent(s)), o = new Uint8Array(u.length); for (var i = 0; i < u.length; i++) o[i] = u.charCodeAt(i); return o; })(); }
+  function fromUtf8(b) { return typeof TextDecoder !== 'undefined' ? new TextDecoder().decode(b) : decodeURIComponent(escape(String.fromCharCode.apply(null, b))); }
+  function hmac(key, msg) {
+    if (key.length > 64) key = sha256(key);
+    var ik = new Uint8Array(64), ok = new Uint8Array(64), i;
+    for (i = 0; i < 64; i++) { var kb = i < key.length ? key[i] : 0; ik[i] = kb ^ 0x36; ok[i] = kb ^ 0x5c; }
+    return sha256(cat(ok, sha256(cat(ik, msg))));
+  }
+  function keys(id) { return { enc: sha256(utf8('E|' + SECRET + '|' + id)), mac: sha256(utf8('M|' + SECRET + '|' + id)) }; }
+  function stream(k, nonce, n) {   // counter-mode keystream built from HMAC-SHA256
+    var out = new Uint8Array(n), c = 0, pos = 0;
+    while (pos < n) { var blk = hmac(k, cat(nonce, new Uint8Array([c >>> 24, c >>> 16, c >>> 8, c]))); for (var i = 0; i < 32 && pos < n; i++) out[pos++] = blk[i]; c++; }
+    return out;
+  }
+  function rand(n) { var o = new Uint8Array(n); try { crypto.getRandomValues(o); } catch (e) { for (var i = 0; i < n; i++) o[i] = Math.floor(Math.random() * 256); } return o; }
+  function toText(bytes) {
+    var bits = 0, val = 0, out = '';
+    for (var i = 0; i < bytes.length; i++) { val = (val << 8) | bytes[i]; bits += 8; while (bits >= 5) { out += ALPHA.charAt((val >>> (bits - 5)) & 31); bits -= 5; } }
+    if (bits > 0) out += ALPHA.charAt((val << (5 - bits)) & 31);
+    return out;
+  }
+  function fromText(s) {
+    var bits = 0, val = 0, out = [];
+    for (var i = 0; i < s.length; i++) { var v = ALPHA.indexOf(s.charAt(i)); if (v < 0) return null; val = ((val << 5) | v) & 0xffff; bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+    return new Uint8Array(out);
+  }
+  // LZSS: finds repeated pieces (a flag byte says, for each of the next 8 items, literal byte or "copy N bytes from M back")
+  function lzc(src) {
+    var out = [], n = src.length, i = 0, head = new Int32Array(4096), prev = new Int32Array(n + 1), flagPos = -1, flagBit = 8, k, h;
+    for (k = 0; k < 4096; k++) head[k] = -1;
+    function put(lit) { if (flagBit === 8) { flagPos = out.length; out.push(0); flagBit = 0; } if (lit) out[flagPos] |= (1 << flagBit); flagBit++; }
+    function hs(p) { return ((src[p] << 8) ^ (src[p + 1] << 4) ^ src[p + 2]) & 4095; }
+    function index(p) { if (p + 2 < n) { var q = hs(p); prev[p] = head[q]; head[q] = p; } }
+    while (i < n) {
+      var bl = 0, bo = 0;
+      if (i + 2 < n) {
+        var cand = head[hs(i)], tries = 0;
+        while (cand >= 0 && i - cand <= 4095 && tries++ < 48) {
+          var l = 0; while (l < 18 && i + l < n && src[cand + l] === src[i + l]) l++;
+          if (l > bl) { bl = l; bo = i - cand; if (l === 18) break; }
+          cand = prev[cand];
+        }
+      }
+      if (bl >= 3) { put(false); out.push(bo & 255, ((bo >> 8) << 4) | (bl - 3)); for (k = 0; k < bl; k++) { index(i); i++; } }
+      else { put(true); out.push(src[i]); index(i); i++; }
+    }
+    return new Uint8Array(out);
+  }
+  function lzd(src, outLen) {
+    var out = new Uint8Array(outLen), o = 0, i = 0;
+    while (o < outLen && i < src.length) {
+      var flags = src[i++];
+      for (var b = 0; b < 8 && o < outLen && i < src.length; b++) {
+        if (flags & (1 << b)) out[o++] = src[i++];
+        else { var b1 = src[i++], b2 = src[i++], off = b1 | ((b2 >> 4) << 8), len = (b2 & 15) + 3; if (off === 0 || off > o) throw new Error('bad'); for (var k = 0; k < len && o < outLen; k++) { out[o] = out[o - off]; o++; } }
+      }
+    }
+    if (o !== outLen) throw new Error('short');
+    return out;
+  }
+  function group(s) { var o = []; for (var i = 0; i < s.length; i += 5) o.push(s.substr(i, 5)); return o.join('-'); }
+  function same(a, b) { var d = a.length ^ b.length; for (var i = 0; i < a.length && i < b.length; i++) d |= a[i] ^ b[i]; return d === 0; }
+
+  function makeApi(o) {
+    var kk = keys(o.id), TAG = (o.tag || o.id).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'SAVE';
+    var api = {
+      id: o.id, name: o.name || o.id, blurb: o.blurb || '',
+      exportCode: function () {
+        var raw = utf8(JSON.stringify({ g: o.id, t: Date.now(), d: o.get() })), nonce = rand(8);
+        var plain = cat(new Uint8Array([raw.length >>> 24, raw.length >>> 16, raw.length >>> 8, raw.length]), lzc(raw));
+        var ks = stream(kk.enc, nonce, plain.length), ct = new Uint8Array(plain.length);
+        for (var i = 0; i < plain.length; i++) ct[i] = plain[i] ^ ks[i];
+        var body = cat(cat(new Uint8Array([2]), nonce), ct), tag = hmac(kk.mac, body).slice(0, 10);
+        return TAG + '-' + group(toText(cat(body, tag)));
+      },
+      importCode: function (text) {
+        var s = String(text || '').toUpperCase().replace(/[\s-]+/g, '');
+        if (!s) return { ok: false, msg: 'Paste a save code first.' };
+        // the code may be pasted with or without its dashes, spaces or game tag in front
+        var cands = []; if (s.indexOf(TAG) === 0) cands.push(s.slice(TAG.length)); cands.push(s);
+        var body = null, sawLetters = false;
+        for (var ci = 0; ci < cands.length && !body; ci++) {
+          var bytes = fromText(cands[ci]);
+          if (!bytes || bytes.length < 20) continue;
+          sawLetters = true;
+          var bd = bytes.slice(0, bytes.length - 10), tg = bytes.slice(bytes.length - 10);
+          if (same(hmac(kk.mac, bd).slice(0, 10), tg)) body = bd;
+        }
+        if (!sawLetters) return { ok: false, msg: "That doesn't look like a save code." };
+        if (!body) return { ok: false, msg: "That code isn't valid. It is for a different game, or it was changed or copied wrongly." };
+        var nonce = body.slice(1, 9), ct = body.slice(9), ks = stream(kk.enc, nonce, ct.length), pt = new Uint8Array(ct.length);
+        for (var i = 0; i < ct.length; i++) pt[i] = ct[i] ^ ks[i];
+        var data;
+        try {
+          if (body[0] === 2) { var len = ((pt[0] << 24) | (pt[1] << 16) | (pt[2] << 8) | pt[3]) >>> 0; if (len > 8000000) throw new Error('big'); pt = lzd(pt.slice(4), len); }   // (version 1 codes are plain, version 2 are compressed)
+          data = JSON.parse(fromUtf8(pt));
+        } catch (e) { return { ok: false, msg: "That code couldn't be read." }; }
+        if (!data || data.g !== o.id) return { ok: false, msg: 'That code is for a different game.' };
+        try { o.set(data.d); } catch (e) { return { ok: false, msg: "The game couldn't use that code." }; }
+        return { ok: true, msg: 'Loaded! ' + (o.summary ? o.summary(data.d) : 'Your progress is back.'), saved: data.t };
+      },
+      peek: function () { return o.get(); }, poke: function (d) { return o.set(d); },   // for tests
+      onOpen: o.onOpen, onClose: o.onClose,
+    };
+    return api;
+  }
+
+  // ---- the drop-down
+  var CSS = ':host{all:initial} *{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}' +
+    '.tab{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:2147483000;padding:1px 14px 2px;border-radius:0 0 10px 10px;background:rgba(20,26,40,.55);color:#cfe0ff;font-size:11px;line-height:15px;cursor:pointer;opacity:.35;transition:opacity .2s;user-select:none;-webkit-user-select:none}' +
+    '.tab:hover{opacity:.95}.tab.hide{display:none}' +
+    '.panel{position:fixed;top:0;left:50%;width:min(540px,96vw);transform:translate(-50%,-112%);z-index:2147483001;background:rgba(16,21,34,.98);color:#e8eefc;border:1px solid rgba(160,185,255,.25);border-top:0;border-radius:0 0 18px 18px;padding:14px 16px 14px;box-shadow:0 18px 50px rgba(0,0,0,.55);transition:transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s;visibility:hidden;pointer-events:none;max-height:100vh;overflow:auto}' +
+    '.panel.on{transform:translate(-50%,0);visibility:visible;pointer-events:auto;transition:transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s}' +
+    'h2{margin:0 0 2px;font-size:16px;letter-spacing:.02em}.sub{margin:0 0 10px;font-size:12px;color:#9fb0d4}' +
+    'label{display:block;margin:10px 0 4px;font-size:12px;font-weight:700;color:#bcd0ff}' +
+    'textarea{width:100%;display:block;resize:none;border-radius:10px;border:1px solid rgba(160,185,255,.28);background:#0b1020;color:#9dffb8;font:12px/1.45 ui-monospace,Consolas,Menlo,monospace;padding:8px 10px;letter-spacing:.04em;word-break:break-all}' +
+    'textarea.in{color:#fff}textarea:focus{outline:2px solid #6aa2ff;outline-offset:0}' +
+    '.row{display:flex;gap:8px;margin-top:8px}button{flex:1;border:0;border-radius:10px;padding:9px 12px;background:#2f6bff;color:#fff;font-weight:700;font-size:13px;cursor:pointer}button:hover{background:#4a7fff}button.alt{background:#27324d}button.alt:hover{background:#34426a}' +
+    '.msg{min-height:18px;margin-top:8px;font-size:12px;font-weight:600}.msg.ok{color:#7dff9b}.msg.bad{color:#ff8f8f}';
+
+  function mountUI(getApi, title) {
+    var host = document.createElement('div'); host.setAttribute('data-save-manager', '');
+    var root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
+    root.innerHTML = '<style>' + CSS + '</style><div class="tab" part="tab" title="Save Manager (or move your mouse to the top of the page)">&#9662; Save</div>' +
+      '<div class="panel" role="dialog" aria-label="Save Manager"><h2>Save Manager</h2><p class="sub"></p>' +
+      '<label>Your save code (it changes every time; any of them works)</label><textarea class="out" rows="4" readonly spellcheck="false"></textarea>' +
+      '<div class="row"><button class="copy" type="button">Copy code</button><button class="alt refresh" type="button">New code</button></div>' +
+      '<label>Load a save code</label><textarea class="in" rows="2" placeholder="Paste a save code here" spellcheck="false" autocomplete="off"></textarea>' +
+      '<div class="row"><button class="load" type="button">Load this save</button></div><div class="msg" aria-live="polite"></div></div>';
+    document.documentElement.appendChild(host);
+    var $ = function (s) { return root.querySelector(s); };
+    var tab = $('.tab'), panel = $('.panel'), out = $('.out'), inp = $('.in'), msg = $('.msg'), isOpen = false, closeT = 0, lastY = 999;
+    function say(t, ok) { msg.textContent = t || ''; msg.className = 'msg' + (t ? (ok ? ' ok' : ' bad') : ''); }
+    function refresh() { var a = getApi(); try { out.value = a ? a.exportCode() : ''; $('.sub').textContent = a ? (a.blurb || (a.name + ': move your mouse to the top any time to open this.')) : (title || ''); } catch (e) { out.value = ''; say('Could not make a code right now.', false); } }
+    function open() { clearTimeout(closeT); if (isOpen) return; isOpen = true; panel.classList.add('on'); tab.classList.add('hide'); say(''); refresh(); var a = getApi(); if (a && a.onOpen) { try { a.onOpen(); } catch (e) { /* ignore */ } } }
+    function close() { if (!isOpen) return; isOpen = false; panel.classList.remove('on'); tab.classList.remove('hide'); try { inp.blur(); } catch (e) { /* ignore */ } var a = getApi(); if (a && a.onClose) { try { a.onClose(); } catch (e) { /* ignore */ } } }
+    function keepOrClose() { clearTimeout(closeT); closeT = setTimeout(function () { var typing = root.activeElement && (root.activeElement === inp || root.activeElement === out); if (!panel.matches(':hover') && !typing) close(); }, 450); }
+    document.addEventListener('mousemove', function (e) { lastY = e.clientY; if (e.clientY <= 3 && !isOpen) open(); else if (isOpen) { var r = panel.getBoundingClientRect(); if (e.clientY > r.bottom + 14 || e.clientX < r.left - 30 || e.clientX > r.right + 30) keepOrClose(); else clearTimeout(closeT); } }, { passive: true });
+    document.documentElement.addEventListener('mouseleave', function (e) { if (e.clientY <= 10 && !isOpen) open(); });
+    panel.addEventListener('mouseenter', function () { clearTimeout(closeT); });
+    panel.addEventListener('mouseleave', keepOrClose);
+    tab.addEventListener('click', function () { if (isOpen) close(); else open(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen) close(); }, true);
+    ['keydown', 'keyup', 'keypress', 'pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function (t) { panel.addEventListener(t, function (e) { e.stopPropagation(); }); });   // typing or clicking in here must never reach the game
+    out.addEventListener('focus', function () { out.select(); }); out.addEventListener('click', function () { out.select(); });
+    $('.refresh').addEventListener('click', function () { refresh(); say('Here is a fresh code.', true); });
+    $('.copy').addEventListener('click', function () {
+      refresh(); out.focus(); out.select();
+      var done = function () { say('Copied! Keep it somewhere safe.', true); };
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(out.value).then(done, function () { try { document.execCommand('copy') ? done() : say('Select the code and press Ctrl+C.', true); } catch (e) { say('Select the code and press Ctrl+C.', true); } }); return; } } catch (e) { /* fall through */ }
+      try { document.execCommand('copy') ? done() : say('Select the code and press Ctrl+C.', true); } catch (e) { say('Select the code and press Ctrl+C.', true); }
+    });
+    $('.load').addEventListener('click', function () {
+      var a = getApi(); if (!a) return say('No game is ready yet.', false);
+      var r = a.importCode(inp.value); say(r.msg, r.ok); if (r.ok) { inp.value = ''; refresh(); }
+    });
+    return { open: open, close: close, refresh: refresh, isOpen: function () { return isOpen; } };
+  }
+
+  var current = null, ui = null, hostApi = null;
+  var SM = {
+    // games call this once; it works out by itself whether it is standing alone or inside the Arcade page
+    init: function (o) {
+      var api = makeApi(o);
+      if (hostApi) { hostApi.register(api); return api; }   // this copy of the code belongs to the Arcade page: the Arcade's own code stays the current one
+      SM.current = api;
+      var parentHost = null; try { if (window.parent !== window && window.parent.__SMHost) parentHost = window.parent.__SMHost; } catch (e) { /* cross-origin parent */ }
+      if (parentHost) { parentHost.register(api); return api; }
+      current = api; if (!ui) ui = mountUI(function () { return current; }, o.name);
+      SM.ui = ui; return api;
+    },
+    // The Arcade page: ONE save code for all of its games. The page keeps every game's progress in memory (so switching games, which reloads the
+    // game, loses nothing, even where the browser won't let pages save), and the code holds all of it.
+    host: function (title) {
+      var saved = {}, fresh = {}, active = null, STORE = 'arcade_save_v1', syncT = 0;
+      try { var old = JSON.parse(localStorage.getItem(STORE) || 'null'); if (old && typeof old === 'object') Object.keys(old).forEach(function (k) { if (/^[a-z0-9]{2,20}$/.test(k) && old[k] && typeof old[k] === 'object') saved[k] = old[k]; }); } catch (e) { /* storage blocked */ }
+      function copy(x) { return JSON.parse(JSON.stringify(x)); }
+      function persist() { try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (e) { /* blocked */ } }
+      var h = {
+        sync: function () { if (!active) return; try { saved[active.id] = copy(active.peek()); fresh[active.id] = true; persist(); } catch (e) { /* the game is gone */ } },
+        warming: null,
+        active: function () { return active; },
+        register: function (api) {
+          if (h.warming) {   // a hidden copy of a game that is not open, loaded only to read its saved progress
+            if (!fresh[api.id]) { try { saved[api.id] = copy(api.peek()); fresh[api.id] = true; persist(); } catch (e) { /* ignore */ } }
+            return;
+          }
+          active = api;
+          if (fresh[api.id] && saved[api.id]) { try { api.poke(copy(saved[api.id])); } catch (e) { /* ignore */ } }   // this game was opened before (or a code was loaded): put its progress back
+          else { try { saved[api.id] = copy(api.peek()); fresh[api.id] = true; persist(); } catch (e) { /* ignore */ } }
+          SM.games = function () { return Object.keys(saved); };
+        },
+        games: function () { return Object.keys(saved); },
+      };
+      var master = makeApi({
+        id: 'arcade', name: title || 'Arcade', tag: 'ARCD',
+        blurb: 'One code for the whole Arcade: every game\'s scores and progress.',
+        get: function () { h.sync(); return saved; },
+        set: function (d) {
+          if (!d || typeof d !== 'object') throw new Error('bad');
+          var n = {}; Object.keys(d).forEach(function (k) { if (/^[a-z0-9]{2,20}$/.test(k) && d[k] && typeof d[k] === 'object') n[k] = copy(d[k]); });
+          saved = n; fresh = {}; Object.keys(n).forEach(function (k) { fresh[k] = true; }); persist();
+          if (active && saved[active.id]) { try { active.poke(copy(saved[active.id])); } catch (e) { /* ignore */ } }   // the game that is open gets its part now, the others when you open them
+        },
+        summary: function (d) { return 'All ' + Object.keys(d || {}).length + ' games are back.'; },
+        onOpen: function () { h.sync(); if (active && active.onOpen) { try { active.onOpen(); } catch (e) { /* ignore */ } } },
+        onClose: function () { if (active && active.onClose) { try { active.onClose(); } catch (e) { /* ignore */ } } },
+      });
+      hostApi = h; window.__SMHost = h; current = master; SM.current = master; SM.arcade = h;
+      ui = mountUI(function () { return master; }, title); SM.ui = ui;
+      syncT = setInterval(h.sync, 4000);
+      window.addEventListener('pagehide', h.sync);
+      return h;
+    },
+    _test: { sha256: sha256, hmac: hmac, utf8: utf8, lzc: lzc, lzd: lzd },
+  };
+  window.SaveManager = SM;
+})();
+</script>
+<script>
+(function () {
+  // Tiny Fishing (the real one) + Save Manager.
+  // The game's files are loaded from one fixed copy on jsDelivr (pinned to a single commit, so they can never change under you).
+  // The game keeps its progress in browser cookies, which embeds often block, so here it gets a small cookie jar of its own:
+  // the jar is what the save code holds, and it is kept in this page's storage when the browser allows it.
+  'use strict';
+  var BASE = 'https://cdn.jsdelivr.net/gh/MajesticWafer/tiny-fishing@4928e7aa099eaf1ac4ddfb05b6e6ff6b86d2af67/';
+  var STORE = 'tinyfishing_real_cookies_v1', PREFIX = 'Gone Fishing', HANDOFF = 'tfjar1:';
+  var msg = document.getElementById('tfmsg'), txt = document.getElementById('tftxt'), sub = document.getElementById('tfsub');
+
+  // ---- what the player sees while the game downloads (a slow or filtered network would otherwise look like a black screen)
+  var t0 = Date.now(), ready = false, scriptState = 'downloading', errors = [];
+  function say(text, bad) { if (ready) return; txt.textContent = text; msg.className = bad ? 'bad' : ''; msg.style.display = 'flex'; msg.style.pointerEvents = bad ? 'auto' : 'none'; if (bad) details(); }
+  function done() { ready = true; msg.style.display = 'none'; }
+  function details() {
+    var gl = 'no'; try { var c = document.createElement('canvas'); gl = (c.getContext('webgl') || c.getContext('experimental-webgl')) ? 'yes' : 'no'; } catch (e) { /* ignore */ }
+    sub.textContent = 'Details: game file ' + scriptState + ', WebGL ' + gl + (errors.length ? ', errors: ' + errors.join(' | ').slice(0, 300) : '') + '.';
+  }
+  window.addEventListener('error', function (e) { if (errors.length < 4 && e.message && e.message !== 'Script error.') errors.push(e.message); });
+  var tick = setInterval(function () {
+    if (ready) { clearInterval(tick); return; }
+    var s = Math.round((Date.now() - t0) / 1000);
+    if (msg.className !== 'bad') sub.textContent = s + ' s' + (s > 20 ? '. This is slow. If it never starts, this network may be blocking cdn.jsdelivr.net.' : '');
+    if (s === 90 && scriptState !== 'bad') say('The game is not starting.', true);
+  }, 1000);
+  try {   // the game writes "ImageLoaded: ..." for each of its 5 picture sheets as it loads; once they are all in, the first screen is moments away
+    var seen = 0, oldLog = console.log;
+    console.log = function (a) { try { if (typeof a === 'string' && a.indexOf('ImageLoaded') === 0 && ++seen >= 5) setTimeout(done, 700); } catch (e) { /* ignore */ } return oldLog.apply(console, arguments); };
+  } catch (e) { /* ignore */ }
+
+  function clean(j) {
+    var out = {}, n = 0;
+    if (j && typeof j === 'object') Object.keys(j).forEach(function (k) { if (k.indexOf(PREFIX) === 0 && k.length < 120 && typeof j[k] === 'string' && j[k].length < 500) { out[k] = j[k]; n++; } });
+    return n ? out : null;
+  }
+
+  // ---- the cookie jar
+  var jar = {};
+  function persist() { try { localStorage.setItem(STORE, JSON.stringify(jar)); } catch (e) { /* storage blocked: the jar lives in memory */ } }
+  try { var old = clean(JSON.parse(localStorage.getItem(STORE) || 'null')); if (old) jar = old; } catch (e) { /* blocked */ }
+  try {   // a code was just loaded and the page restarted: where storage is blocked, the new progress was handed over through the window's name
+    var wn = String(window.name || '');
+    if (wn.indexOf(HANDOFF) === 0) { window.name = ''; var h = clean(JSON.parse(wn.slice(HANDOFF.length))); if (h) { jar = h; persist(); } }
+  } catch (e) { /* ignore */ }
+
+  try {
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: function () { return Object.keys(jar).map(function (k) { return k + '=' + jar[k]; }).join('; '); },
+      set: function (line) {
+        var s = String(line), semi = s.indexOf(';'), nv = semi < 0 ? s : s.slice(0, semi), eq = nv.indexOf('=');
+        if (eq < 1) return;
+        var name = nv.slice(0, eq).trim(), val = nv.slice(eq + 1), ex = /;\s*expires=([^;]*)/i.exec(s);
+        if (ex && Date.parse(ex[1]) < Date.now()) delete jar[name]; else jar[name] = val;
+        persist();
+      },
+    });
+  } catch (e) { /* ignore */ }
+
+  // the game labels its plain file requests with a Content-Type; from another site (the CDN) that makes the browser demand a permission check the CDN does not answer, so drop it from GET requests
+  try {
+    var X = XMLHttpRequest.prototype, op = X.open, sh = X.setRequestHeader;
+    X.open = function (m) { this.__m = String(m).toUpperCase(); return op.apply(this, arguments); };
+    X.setRequestHeader = function (k) { if (this.__m === 'GET' && /^content-type$/i.test(k)) return; return sh.apply(this, arguments); };
+  } catch (e) { /* ignore */ }
+
+  // ---- the game
+  if (!Number.isNaN && window.isNaN) Number.isNaN = isNaN;
+  function boot() {
+    var baseTag = document.createElement('base'); baseTag.href = BASE; (document.head || document.documentElement).appendChild(baseTag);   // the game finds its files (html5game/...) relative to here
+    var box = document.createElement('div'); box.className = 'gm4html5_div_class'; box.id = 'gm4html5_div_id'; box.style.cssText = 'padding-top:20px;position:absolute;height:488px';
+    var cv = document.createElement('canvas'); cv.id = 'canvas'; cv.width = 640; cv.height = 360; cv.style.cssText = 'position:absolute;left:0;top:0;width:640px;height:360px';
+    box.appendChild(cv); document.body.insertBefore(box, document.body.firstChild);
+    var sc = document.createElement('script');
+    sc.src = BASE + 'html5game/TinyFishing.js';
+    sc.onerror = function () { scriptState = 'bad'; say('Could not download the game from cdn.jsdelivr.net. Check the connection, or whether this network blocks that site, then reload.', true); };
+    sc.onload = function () {
+      if (typeof window.GameMaker_Init !== 'function') { scriptState = 'bad'; say('The game file did not load properly. Something on this network (a filter?) is probably replacing it.', true); return; }
+      scriptState = 'loaded'; if (!ready) txt.textContent = 'Starting the game…';
+      try {
+        if (!window.AudioContext && !window.webkitAudioContext) window.g_WebAudioContext = {};
+        window.GameMaker_Init();
+        if (!window.AudioContext && !window.webkitAudioContext) window.g_WebAudioContext = null;
+      } catch (e) { errors.push(String(e && e.message || e)); scriptState = 'bad'; say('The game could not start.', true); }
+    };
+    (document.head || document.documentElement).appendChild(sc);
+  }
+  if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
+
+  // ---- the Save Manager
+  SaveManager.init({
+    id: 'tinyfishingreal', name: 'Tiny Fishing', tag: 'TFSH',
+    blurb: 'Tiny Fishing: your progress as one code. Paste a code and press Load to bring it back.',
+    get: function () { var j = {}; Object.keys(jar).forEach(function (k) { j[k] = jar[k]; }); return { jar: j }; },
+    set: function (o) {
+      var j = clean(o && o.jar);
+      if (!j) throw new Error('that code has no saved progress in it');
+      jar = j; persist();
+      try { window.name = HANDOFF + JSON.stringify(j); } catch (e) { /* ignore */ }
+      setTimeout(function () { location.reload(); }, 600);   // restart the game so it reads the progress
+    },
+    summary: function () { return 'Restarting the game with your progress…'; },
+  });
+})();
+</script>
